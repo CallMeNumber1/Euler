@@ -1,2 +1,2 @@
-# Euler
-Note for Euler
+# 海贼第0阶段--Euler 
+### 欧拉50题笔记
