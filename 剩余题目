@@ -1,0 +1,459 @@
+
+
+### 共41个题目
+
+查缺补漏 ： 29题求a的b次幂的个数，第二种解法。
+
+### 观看视频  
+
+#### EP44 动态上界、EP12求因子个数、EP03、EP08
+
+
+
+挑5道题： 13 
+
+1道难的 2道实现比较复杂的 2道有收获的
+
+## 考点
+
+- #### 素数筛、线性筛
+
+- #### 整数因子和与因子个数
+
+- #### 大整数乘法
+
+- #### 全排列状态数
+
+- #### 日期枚举
+
+
+
+
+
+### 随机题目：
+
+### EP19 日期问题
+
+```c
+//处理日期问题
+
+#include <stdio.h>
+//模拟各个月份
+int days[13] = {
+    0, 31, 28, 31,
+    30, 31, 30, 31,
+    31, 30, 31, 30, 31
+};
+//判断闰年
+int leap_year(int y) {
+    return (y % 4 == 0 && y % 100) || (y % 400 == 0);
+}
+//计算下一天
+int get_next_day(int y, int m, int d) {
+    d += 1;
+    if (d > days[m] + (m == 2 && leap_year(y))) {
+        d = 1;
+    }
+    return d;
+}
+int main() {
+    int ans = 0, y = 1900, m = 1, d = 1, w = 1;
+    do {
+        printf("%d-%d-%d\n", y, m, d);
+        d = get_next_day(y, m, d);  
+        m += (d == 1);              //d==1时月份加1
+        y += (m == 13 && (m = 1));  //当m=13时，年份加1。，月份重新置1
+        w = (w + 1) % 7;
+        ans += (w == 0 && d == 1 && y != 1900); //落在每月1号的周日
+    } while (y <= 2000 && m <= 12 && d <= 31);
+    printf("%d\n", ans);
+    return 0;
+}
+```
+
+## EP21 因子和（线性筛框架）同类型：EP23
+
+#### 约数和定理：
+
+任一正整数分解质因数，均可表示为如下形式：
+
+​			 $N = p_1^{a_1} * p_2^{a_2} * .....* p_n^{a_n} $
+
+则其约数和F(N)为：
+
+​			 $ F(N) = \prod\limits_{i = 1}^n\frac{1-p_i^{a_i+1}}{1-p_i}	 $
+
+根据约数和公式，易知如下结论：
+
+- 若正整数A、B互素，且C = A × B，则F(C) = F(A) * F(B)
+
+- 若A、B间仅差一个A中最小的素因子，形式如下：
+
+  ​	 $ A = p_1^{a_1}*p_2^{a_2}*..... $
+
+  ​	 $ B = p_1*p_1^{a_1}*.... $
+
+  则$ F(B) = F(A) * \frac{1-p_1^{a_1+2}}{1-p_1^{a_1+1}}$
+
+#### 代码部分
+
+dnum[i]存储数字i的约数和
+
+is_prime[i]存储数字i中最小素因子项的幂次值。例如：is_prime[24] = 8 $(2^{3})$
+
+15 - 17 行是对定理中结论2的实现，19-20行是对定理中结论1的实现。
+
+```c
+#include <stdio.h>
+#define MAX 10000
+int prime[MAX + 5] = {0};    
+int dnum[MAX + 5] = {0};    //保存因子和
+int is_prime[MAX + 5] = {0};  //保存最小素因子的幂次值
+void init() {
+    for (int i = 2; i <= MAX; i++) {
+        if (!is_prime[i]) {               //注意此处判断的是is_prime[i] 如果要写成prime[i],则下面的for循环中要加上prime[i * prime[j]] = 1
+            is_prime[i] = i;
+            prime[++prime[0]] = i;
+            dnum[i] = i + 1;  
+        }
+        for (int j = 1; i * prime[j] <= MAX && j <= prime[0]; j++) { 
+            if (i % prime[j] == 0) {
+                is_prime[i * prime[j]] = is_prime[i] * prime[j];  //因为prime[j]为i的最小素因子
+                dnum[i * prime[j]] = dnum[i] * (is_prime[i] * prime[j] * prime[j] - 1) / (is_prime[i] * prime[j] - 1);
+                break;
+            } else {
+                is_prime[i * prime[j]] = prime[j];
+                dnum[i * prime[j]] = dnum[i] * dnum[prime[j]];
+            } 
+        }
+    }
+    for (int i = 0; i <= MAX; i++) {
+        dnum[i] -= i;                           //题目要求不包含i本身的约数和，因此在总约数中将i本身减掉。
+    } 
+    return ;
+}
+int main() {
+    init();
+    int sum = 0;
+    for (int i = 0; i < MAX; i++) {
+        //如果不加第一个条件，则会发生越界
+        if (dnum[i] <= MAX && dnum[i] != i && dnum[dnum[i]] == i) {
+            sum += i;
+        }
+    } 
+    printf("%d\n", sum);
+    return 0;
+}
+```
+
+### EP23 非盈数之和（因子和，线性筛）
+
+思路一：（我的思路）
+
+```c
+#include <stdio.h>
+#define MAX 28123
+int prime[MAX + 5] = {0};
+int dnum[MAX + 5] = {0};
+int is_prime[MAX + 5] = {0};
+void init() {
+    for (int i = 2; i <= MAX; i++) {
+        if (!is_prime[i]) {
+            is_prime[i] = i;
+            dnum[i] = i + 1;
+            prime[++prime[0]] = i;
+        }
+        for (int j = 1; i * prime[j] <= MAX && j <= prime[0]; j++) {
+            if (i % prime[j] == 0) {
+                is_prime[i * prime[j]] = is_prime[i] * prime[j];
+                dnum[i * prime[j]] = dnum[i] * (is_prime[i] * prime[j] * prime[j] - 1) / (is_prime[i] * prime[j] - 1);
+                break;
+            } else {
+                is_prime[i * prime[j]] = prime[j];
+                dnum[i * prime[j]] = dnum[i] * dnum[prime[j]];
+            } 
+        }
+    }  
+    for (int i = 2; i <= MAX; i++) {
+        dnum[i] -= i;
+    }
+}
+int is_abundant(int n) {
+    return (dnum[n] > n);
+}
+int main() {
+    init();
+    int sum = 0;
+    //1虽然不为盈数，但本身也不能写成盈数之和
+    for (int i = 1; i <= MAX; i++) {
+        int flag = 1;
+        for (int j = 2; j <= i && flag; j++) {    //一旦能表示成盈数之和，flag就置0,即此数不满足
+            if (is_abundant(j) && is_abundant(i - j)) flag = 0;
+        }
+        if (flag == 1) {
+            printf("%d\n", i);
+            sum += i;
+        }
+    }
+    printf("%d\n", sum);
+    return 0;
+}
+```
+
+思路二：
+
+1. 计算范围内（28173）所有的约数和
+2. 筛选得到所有的盈数
+3. 枚举两个盈数和，用数组进行标记
+4. 输出范围内没有标记的数字，累计求和
+
+### EP27：二次素数生成多项式
+
+思路一：我的做法
+
+```c
+#include <stdio.h>
+#define MAX 1000
+#define MAX_N 2000000
+int prime[MAX_N + 5] = {0};
+void init() {
+    prime[0] = prime[1] = 1;
+    for (int i = 2; i * i <= MAX_N; i++) {
+        if (prime[i]) continue;
+        for (int j = i * 2; j <= MAX_N; j += i) {
+            prime[j] = 1;
+        }
+    }
+    return ;
+}
+
+int get_num(int a, int b) {
+    int sum = 0;
+    for (int n = 0; ; n++) {
+        if (n * n + a * n + b < 0) continue;
+        if(prime[n * n + a * n + b]) break;
+        sum++;
+    }
+    return sum;
+}
+int main() {
+    init();
+    int ans = 0;
+    int res = 1;
+    for (int i = -MAX + 1; i < MAX; i++) {
+        for (int j = -MAX + 1; j < MAX; j++) {
+            int temp = get_num(i, j);
+            if (temp > ans) {
+                printf("%d %d\n", i, j);
+                res = i * j;
+                ans = temp;
+            }
+        }
+    }
+    printf("%d %d\n", ans, res);
+    return 0;
+}
+```
+
+思路二：快速幂+简版米勒测试
+
+```c
+//快速求解a的b次方
+int quick_pow(int a, int b) {
+    int ans = 1, temp = a;
+    while(b) {
+        if (b & 1) ans = ans * temp;  //根据b的二进制末尾是否为1，决定取不取temp中的值至结果ans中
+        temp = temp * temp;          //更新temp的值，如果之前代表a2, 更新变为a4
+        b >> 1;                      //更新b的值，去掉b的二进制中的最后一位
+    }
+    return ans;
+}
+```
+
+例如：计算 $ a^{16} $
+
+$ (19)_{10} =(10011)_2  = 1 * 2 ^ 4 + 0 * 2^3 + 0 * 2^2 + 1 * 2^1 + 1 *2^0$
+
+$ a^{19} = a^{1 * 2^{4}} * ......$
+
+$ a^{19} = a^{16} * a^2 * a^1$
+
+### EP49 特殊素数序列
+
+本题目中用到的新方法：
+
+用20个二进制位存储0～9十个数字的组合状态，从后往前，每两个二进制为表示一个数字。
+
+例如：00 代表此数字出现0次，01代表出现1次，10代表出现两次，11代表出现三次。。。
+
+#### 本题目中的sort函数用到了lamda表达式。
+
+lamda表达式为c++11中的特性，因此编译时，后面要加上 -std=c++11
+
+```c
+#include <stdio.h>
+#include <algorithm>
+#define MAX_N 10000
+typedef struct NODE {
+    int val;                   //保存素数对应数的组合状态
+    int num;                    //保存素数
+}Node;
+int is_prime[MAX_N + 5] = {0};
+Node prime[MAX_N + 5] = {0};
+int cnt = 0;                    //素数的个数
+
+int get_val(int x) {
+    int ret = 0;
+    while (x) {
+        ret += 1 << ((x % 10) * 2); //从0开始，每一个数字用两个二进制位保存
+        x /= 10;                    //出现1次就在相应二进制位上加1
+    }
+    return ret;                 //这样一来，ret就保存了这个数的组成数字
+}
+void init() {
+    for (int i = 2; i * i <= MAX_N; i++) {
+        if (is_prime[i]) continue;
+        for (int j = 2 * i; j <= MAX_N; j += i) {
+            is_prime[j] = 1;
+        }
+    }
+    for (int i = 2; i <= MAX_N; i++) {
+        if (is_prime[i]) continue;
+        prime[cnt].num = i;
+        prime[cnt].val = get_val(i);
+        cnt += 1;
+    }
+}
+
+int main() {
+    init();
+    std::sort(prime, prime + cnt, [](Node &a, Node &b) {
+        if (a.val < b.val) return true;
+        if (a.val == b.val && a.num < b.num) return true;
+        return false;
+    });
+    for (int i = 0; i < cnt; i++) {
+        for (int j = i + 1; j < cnt && prime[j].val == prime[i].val; j++) {
+            int k = j + 1;
+            while (k < cnt && prime[k].val == prime[j].val) {
+                int val1 = prime[k].num - prime[j].num;
+                int val2 = prime[j].num - prime[i].num;
+            //如果k对应的数与j对应的数的差值大于j与i的，则后面的差值一定更大
+                if (val1 > val2) break;
+                if (val1 == val2) {
+                    printf("%d%d%d\n", prime[i].num, prime[j].num, prime[k].num);
+                }
+                k += 1;
+            }
+        }
+    }
+    return 0;
+}
+```
+
+
+
+### EP40 特定序列中获得指定位置的数字
+
+当数字为n位时，所包含的数字总数为：$9 * 10 ^{n-1} * n $
+
+例如，2位数范围为10-99，占的范围为10～180（90 × 2）
+
+```c
+#include <stdio.h>
+#include <math.h>
+//求出第d位对应的数字
+//1、先确定第d位对应的数字有几位 
+//2、再确定对应的是哪个数字
+//3、最终确定对应的是数字的哪一位
+int num_digit(int n) {
+    return  floor(log10(n)) + 1;
+}
+int get_num(int d) {
+    if (d < 10) return d;
+    int digit = 1, base = 10;
+    while (d > digit * (base - base / 10)) {
+        d -= digit * (base - base / 10);
+        digit += 1;
+        base *= 10;
+    }
+    d -= 1;                  //求出数字相对于base的偏移量以及数字的位数
+    int num = base / 10 + d / digit;   //求出来自的数字是哪个
+    int index = num_digit(num) - d % digit;  //求出是该数字的第几位
+    int ret = 0;
+    while (index--) {                    //求出该数字相应位的数，即为答案
+        ret = num % 10;
+        num /= 10;
+    }
+    return ret;
+}
+int main() {
+    for (int i = 0; i < 100; i++) {
+        printf("%d\n", get_num(i));
+    }
+    printf("%d\n", get_num(1) * get_num(10) * get_num(100) * get_num(1000) * get_num(10000) * get_num(100000) * get_num(1000000));
+    return 0;
+}
+```
+
+### EP48 同余定理
+
+本题思路：
+
+- 一个数字模10，等价于求十进制表示的最后一位数字。
+- 一个数字模$ 10 ^ {10}$，等价于求十进制表示的末尾10位数字
+- 利用快速幂可以快速计算$ n ^ n$的结果
+
+定理1：两个整数的乘积对c取余，等于两个整数对c的余数的乘积再对c取余
+
+定理2：两个整数的和对c取余，等于两个整数对c的余数的和再对c取余
+
+```
+
+```
+
+### EP50
+
+```c
+#include <stdio.h>
+#include <inttypes.h>
+#define MAX 1000000
+int prime[MAX + 5] = {0};
+int64_t sum[MAX + 5] = {0};
+int is_prime[MAX + 5] = {0};
+void init() {
+    for (int i = 2; i <= MAX; i++) {
+        if (!is_prime[i]) {
+            prime[++prime[0]] = i;
+        }
+        for (int j = 1; j <= prime[0] && i * prime[j] <= MAX; j++) {
+            is_prime[i * prime[j]] = 1;
+            if (i % prime[j] == 0) break;
+        }
+    }
+}
+int main() {
+    init();
+    sum[0] = 0;
+    for (int i = 1; i <= prime[0]; i++) {
+        sum[i] = sum[i - 1] + prime[i];
+    }
+    int maxN = 21, maxP = 953;
+    for (int i = 0; i <= prime[0]; i++) {
+        for (int j = i + 1; j <= prime[0]; j++) {
+            if (sum[j] - sum[i] >= MAX) break;
+            if (is_prime[sum[j] - sum[i]]) continue;
+            if (j - i > maxN) {
+                maxN = j - i;
+                maxP = sum[j] - sum[i];
+            }
+        }
+    }
+    printf("%d %d\n", maxN, maxP);
+    return 0;
+}
+```
+
+sum[i]表示从第1个素数到第i个素数的和
+
+sum[j] - sum[i]可以表示第i+1 个素数到第j个素数的和	
